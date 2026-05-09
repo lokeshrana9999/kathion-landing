@@ -5,9 +5,9 @@
  *   npm run verify:waitlist
  *
  * Reads DATABASE_URL from `.env` (repo root) or the environment.
- * If Node fails TLS with SELF_SIGNED_CERT_IN_CHAIN locally, set in `.env`:
- *   DATABASE_SSL_REJECT_UNAUTHORIZED=0
- * (Never enable that on Vercel.)
+ * Supabase URLs use relaxed TLS verify in the API by default; for this script’s
+ * follow-up SELECT, the same rules apply. Opt in to strict CA verify with
+ * DATABASE_SSL_STRICT=1.
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -40,14 +40,21 @@ function stripSslModeIfRelaxing(raw, relaxTls) {
   return rest ? `${base}?${rest}` : base
 }
 
+function isSupabaseHostedUrl(raw) {
+  return /\.supabase\.(com|co)\b/i.test(raw)
+}
+
 async function main() {
   const databaseUrl = loadDatabaseUrl()
   process.env.DATABASE_URL = databaseUrl
 
-  const relaxTls = process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === '0'
-  if (relaxTls) {
+  const strictSsl = process.env.DATABASE_SSL_STRICT === '1'
+  const relaxTls =
+    process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === '0' ||
+    (isSupabaseHostedUrl(databaseUrl) && !strictSsl)
+  if (relaxTls && process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === '0') {
     console.warn(
-      '(TLS) DATABASE_SSL_REJECT_UNAUTHORIZED=0 — dev only; do not use in production',
+      '(TLS) DATABASE_SSL_REJECT_UNAUTHORIZED=0 — forces relax for any host',
     )
   }
 

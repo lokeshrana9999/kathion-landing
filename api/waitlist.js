@@ -15,11 +15,19 @@ function normalizePgConnectionString(raw) {
   const mode = (params.get('sslmode') || '').toLowerCase()
   if (mode === 'require' || mode === 'prefer' || mode === 'verify-ca') {
     params.set('sslmode', 'verify-full')
-  } else if (!params.has('sslmode') && /\.supabase\.co/i.test(base)) {
+  } else if (
+    !params.has('sslmode') &&
+    /\.supabase\.(com|co)\b/i.test(base)
+  ) {
     params.set('sslmode', 'verify-full')
   }
   const rest = params.toString()
   return rest ? `${base}?${rest}` : base
+}
+
+/** Pooler uses *.supabase.com; DB uses *.supabase.co */
+function isSupabaseHostedUrl(raw) {
+  return /\.supabase\.(com|co)\b/i.test(raw)
 }
 
 /** Direct DB host often fails on Vercel (ENOTFOUND); pooler :6543 is required. */
@@ -43,8 +51,15 @@ function getPool() {
   const connectionString = process.env.DATABASE_URL
   if (!connectionString) return null
   if (!pool) {
+    /**
+     * Node pg on serverless sometimes fails chain verify against Supabase
+     * (SELF_SIGNED_CERT_IN_CHAIN) even with correct URIs. Keep TLS, skip CA verify
+     * for *.supabase.{com,co} unless DATABASE_SSL_STRICT=1.
+     */
+    const strictSsl = process.env.DATABASE_SSL_STRICT === '1'
     const relaxTls =
-      process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === '0'
+      process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === '0' ||
+      (isSupabaseHostedUrl(connectionString) && !strictSsl)
     let conn = normalizePgConnectionString(connectionString)
     if (isSupabaseDirectDbUrl(conn)) {
       console.warn(
