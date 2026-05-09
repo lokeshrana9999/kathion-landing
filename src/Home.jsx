@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useCallback,
+  useId,
 } from 'react'
 
 const BRAND_LOGO_SRC = '/Web_Photo_Editor.png'
@@ -518,8 +519,8 @@ function Hero() {
           <MailingList />
 
           <p className="hero-try">
-            Try a live scene below — real narration, generated for you in this
-            browser.
+            Further down, the live demo runs a real scene — narration generated
+            for you in this browser.
           </p>
         </div>
 
@@ -536,6 +537,160 @@ function Hero() {
           <div className="hero-canvas-coords">N 47.2° · W 12.8° · DEPTH 4</div>
           <StoryTree />
         </div>
+      </div>
+    </section>
+  )
+}
+
+const BUILD_STAGES = [
+  {
+    id: 'canon',
+    title: 'Canon & sources',
+    short: 'Setting, tone, and facts',
+    body:
+      'Where the voice of your world lives — the names, histories, and truths readers can lean on.',
+  },
+  {
+    id: 'rules',
+    title: 'Rules & constraints',
+    short: 'What must always hold',
+    body:
+      "The lines the engine won't cross: tone, causality, and how far a choice is allowed to carry.",
+  },
+  {
+    id: 'scenes',
+    title: 'Scenes & branches',
+    short: 'Beats and the choice graph',
+    body:
+      'The spine of the tale — moments, forks, and the paths that stitch them together.',
+  },
+  {
+    id: 'build',
+    title: 'Build & output',
+    short: 'A run you can share',
+    body:
+      'From that structure to something playable — a packaged state or export your readers can open.',
+  },
+]
+
+function BuildSystemDiagram() {
+  const markerId = useId().replace(/:/g, '')
+  const vbW = 1024
+  const vbH = 196
+  const boxW = 212
+  const boxH = 124
+  const arrW = 38
+  const m = 34
+  const y0 = 36
+
+  return (
+    <svg
+      className="build-diagram-svg"
+      viewBox={`0 0 ${vbW} ${vbH}`}
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <marker
+          id={`build-arrow-${markerId}`}
+          markerWidth="7"
+          markerHeight="7"
+          refX="6"
+          refY="3.5"
+          orient="auto"
+        >
+          <path
+            d="M0 0 L7 3.5 L0 7 Z"
+            fill="var(--canopy-line-2)"
+          />
+        </marker>
+      </defs>
+      {BUILD_STAGES.map((s, i) => {
+        const x = m + i * (boxW + arrW)
+        return (
+          <g key={s.id} transform={`translate(${x},${y0})`}>
+            <rect
+              width={boxW}
+              height={boxH}
+              rx="6"
+              fill="var(--canopy-2)"
+              stroke="var(--canopy-line-2)"
+              strokeWidth="1"
+            />
+            <text
+              x="14"
+              y="32"
+              fill="var(--canopy-text)"
+              className="build-diagram-svg-title"
+            >
+              {s.title}
+            </text>
+            <text
+              x="14"
+              y="54"
+              fill="var(--canopy-mute)"
+              className="build-diagram-svg-sub"
+            >
+              {s.short}
+            </text>
+          </g>
+        )
+      })}
+      {BUILD_STAGES.slice(0, -1).map((_, i) => {
+        const x1 = m + i * (boxW + arrW) + boxW + 4
+        const x2 = m + (i + 1) * (boxW + arrW) - 4
+        const ym = y0 + boxH / 2
+        return (
+          <line
+            key={`a-${i}`}
+            x1={x1}
+            y1={ym}
+            x2={x2}
+            y2={ym}
+            stroke="var(--canopy-line-2)"
+            strokeWidth="1.5"
+            markerEnd={`url(#build-arrow-${markerId})`}
+          />
+        )
+      })}
+    </svg>
+  )
+}
+
+function BuildSystemSection() {
+  return (
+    <section
+      className="section-build"
+      aria-labelledby="build-system-heading"
+    >
+      <div className="wrap">
+        <header className="build-head">
+          <p className="eyebrow spark">How it fits together</p>
+          <h2 id="build-system-heading" className="build-title">
+            Your lore, your laws — then something they can{' '}
+            <span className="em">run</span>
+          </h2>
+          <p className="build-lead">
+            You keep canon and guardrails; Kathion shapes that intent into
+            structured scenes and branches, then bundles a playable moment.
+            Below is the through-line — explanatory, not a preview of a product
+            surface.
+          </p>
+        </header>
+        <figure className="build-figure">
+          <BuildSystemDiagram />
+        </figure>
+        <ol className="build-stages" role="list">
+          {BUILD_STAGES.map((s, i) => (
+            <li key={s.id} className="build-stage">
+              <span className="build-stage-num">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <h3 className="build-stage-title">{s.title}</h3>
+              <p className="build-stage-body">{s.body}</p>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   )
@@ -897,6 +1052,7 @@ export default function Home() {
     <>
       <Nav />
       <Hero />
+      <BuildSystemSection />
       <StoryDemo />
       <Footer />
     </>
