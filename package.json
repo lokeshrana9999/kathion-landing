@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify:waitlist": "node scripts/verify-waitlist.mjs"
   },
   "dependencies": {
     "pg": "^8.16.0",

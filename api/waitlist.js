@@ -7,15 +7,31 @@ const { Pool } = pg
 /** @type {pg.Pool | null} */
 let pool
 
+/** When relaxing TLS for local dev, drop sslmode from URI so pg honors `ssl.rejectUnauthorized`. */
+function connectionStringForPool(raw, relaxTls) {
+  if (!relaxTls) return raw
+  const q = raw.indexOf('?')
+  if (q === -1) return raw
+  const base = raw.slice(0, q)
+  const params = new URLSearchParams(raw.slice(q + 1))
+  params.delete('sslmode')
+  const rest = params.toString()
+  return rest ? `${base}?${rest}` : base
+}
+
 function getPool() {
   const connectionString = process.env.DATABASE_URL
   if (!connectionString) return null
   if (!pool) {
+    const relaxTls =
+      process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === '0'
+    const conn = connectionStringForPool(connectionString, relaxTls)
     pool = new Pool({
-      connectionString,
+      connectionString: conn,
       max: 1,
       connectionTimeoutMillis: 10_000,
       idleTimeoutMillis: 10_000,
+      ...(relaxTls ? { ssl: { rejectUnauthorized: false } } : {}),
     })
   }
   return pool

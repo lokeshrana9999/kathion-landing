@@ -546,42 +546,45 @@ const BUILD_STAGES = [
   {
     id: 'canon',
     title: 'Canon & sources',
-    short: 'Setting, tone, and facts',
-    body:
-      'Where the voice of your world lives — the names, histories, and truths readers can lean on.',
+    short: 'Your world',
+    body: 'The setting, tone, and background everything else draws from.',
   },
   {
     id: 'rules',
     title: 'Rules & constraints',
-    short: 'What must always hold',
-    body:
-      "The lines the engine won't cross: tone, causality, and how far a choice is allowed to carry.",
+    short: 'Fixed points',
+    body: 'What always has to hold: mood, logic, and how far a choice can go.',
   },
   {
     id: 'scenes',
     title: 'Scenes & branches',
-    short: 'Beats and the choice graph',
-    body:
-      'The spine of the tale — moments, forks, and the paths that stitch them together.',
+    short: 'Story beats',
+    body: 'The moments in order, and where the story can branch.',
   },
   {
     id: 'build',
     title: 'Build & output',
-    short: 'A run you can share',
-    body:
-      'From that structure to something playable — a packaged state or export your readers can open.',
+    short: 'Shippable',
+    body: 'Something playable you can hand to someone—save it, share it, tweak it later.',
   },
 ]
 
 function BuildSystemDiagram() {
-  const markerId = useId().replace(/:/g, '')
+  const uid = useId().replace(/:/g, '')
+  const markerForward = `build-fwd-${uid}`
+  const markerLoop = `build-loop-${uid}`
   const vbW = 1024
-  const vbH = 196
+  const vbH = 236
   const boxW = 212
-  const boxH = 124
+  const boxH = 126
   const arrW = 38
   const m = 34
-  const y0 = 36
+  const y0 = 30
+
+  const rowY = y0 + boxH
+  const loopMx = m + boxW * 0.45
+  const loopMy = rowY + 48
+  const loopRx = m + 3 * (boxW + arrW) + boxW - boxW * 0.45
 
   return (
     <svg
@@ -591,49 +594,60 @@ function BuildSystemDiagram() {
       aria-hidden="true"
     >
       <defs>
+        <linearGradient
+          id={`build-node-sheen-${uid}`}
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="100%"
+        >
+          <stop offset="0%" stopColor="rgba(255,255,255,0.06)" />
+          <stop offset="45%" stopColor="rgba(255,255,255,0)" />
+          <stop offset="100%" stopColor="rgba(192,112,79,0.07)" />
+        </linearGradient>
         <marker
-          id={`build-arrow-${markerId}`}
+          id={markerForward}
           markerWidth="7"
           markerHeight="7"
           refX="6"
           refY="3.5"
           orient="auto"
         >
+          <path d="M0 0 L7 3.5 L0 7 Z" fill="var(--spark)" opacity="0.85" />
+        </marker>
+        <marker
+          id={markerLoop}
+          markerWidth="6"
+          markerHeight="6"
+          refX="5"
+          refY="3"
+          orient="auto"
+        >
           <path
-            d="M0 0 L7 3.5 L0 7 Z"
-            fill="var(--canopy-line-2)"
+            d="M0 0 L6 3 L0 6 Z"
+            fill="var(--eon)"
+            opacity="0.65"
           />
         </marker>
       </defs>
+      <line
+        x1={m}
+        y1={y0 - 12}
+        x2={m + 4 * (boxW + arrW) - arrW}
+        y2={y0 - 12}
+        className="build-diagram-tickline"
+      />
       {BUILD_STAGES.map((s, i) => {
-        const x = m + i * (boxW + arrW)
+        const x = m + i * (boxW + arrW) + boxW * 0.5
         return (
-          <g key={s.id} transform={`translate(${x},${y0})`}>
-            <rect
-              width={boxW}
-              height={boxH}
-              rx="6"
-              fill="var(--canopy-2)"
-              stroke="var(--canopy-line-2)"
-              strokeWidth="1"
-            />
-            <text
-              x="14"
-              y="32"
-              fill="var(--canopy-text)"
-              className="build-diagram-svg-title"
-            >
-              {s.title}
-            </text>
-            <text
-              x="14"
-              y="54"
-              fill="var(--canopy-mute)"
-              className="build-diagram-svg-sub"
-            >
-              {s.short}
-            </text>
-          </g>
+          <line
+            key={`tick-${s.id}`}
+            x1={x}
+            y1={y0 - 12}
+            x2={x}
+            y2={y0 - 4}
+            className="build-diagram-tick"
+          />
         )
       })}
       {BUILD_STAGES.slice(0, -1).map((_, i) => {
@@ -647,12 +661,79 @@ function BuildSystemDiagram() {
             y1={ym}
             x2={x2}
             y2={ym}
-            stroke="var(--canopy-line-2)"
+            className="build-diagram-flow"
             strokeWidth="1.5"
-            markerEnd={`url(#build-arrow-${markerId})`}
+            markerEnd={`url(#${markerForward})`}
           />
         )
       })}
+      {BUILD_STAGES.map((s, i) => {
+        const x = m + i * (boxW + arrW)
+        const idx = String(i + 1).padStart(2, '0')
+        return (
+          <g key={s.id} transform={`translate(${x},${y0})`}>
+            <rect
+              width={boxW}
+              height={boxH}
+              rx="4"
+              className="build-diagram-node"
+              fill="var(--canopy)"
+              stroke="var(--canopy-line-2)"
+              strokeWidth="1"
+            />
+            <rect
+              width={boxW}
+              height={boxH}
+              rx="4"
+              className="build-diagram-node-glare"
+              fill={`url(#build-node-sheen-${uid})`}
+              opacity="0.5"
+            />
+            <text
+              x="13"
+              y="30"
+              fill="var(--canopy-text)"
+              className="build-diagram-svg-title"
+            >
+              {s.title}
+            </text>
+            <text
+              x="13"
+              y="52"
+              fill="var(--canopy-mute)"
+              className="build-diagram-svg-sub"
+            >
+              {s.short}
+            </text>
+            <text
+              x={boxW - 12}
+              y="22"
+              textAnchor="end"
+              fill="var(--spark)"
+              className="build-diagram-index"
+            >
+              {idx}
+            </text>
+          </g>
+        )
+      })}
+      <path
+        className="build-diagram-loop"
+        d={`M ${loopRx} ${rowY - 4} Q ${vbW / 2} ${loopMy} ${loopMx} ${rowY - 4}`}
+        fill="none"
+        strokeWidth="1.35"
+        strokeLinecap="round"
+        markerEnd={`url(#${markerLoop})`}
+      />
+      <text
+        x={vbW / 2}
+        y={loopMy + 12}
+        fill="var(--eon)"
+        className="build-diagram-loop-cap"
+        opacity="0.85"
+      >
+        Redo
+      </text>
     </svg>
   )
 }
@@ -663,34 +744,74 @@ function BuildSystemSection() {
       className="section-build"
       aria-labelledby="build-system-heading"
     >
-      <div className="wrap">
-        <header className="build-head">
-          <p className="eyebrow spark">How it fits together</p>
+      <div className="wrap build-wrap">
+        <header className="build-whole">
+          <div className="build-kicker">
+            <span className="build-kicker-dot" />
+            <span>Overview</span>
+          </div>
           <h2 id="build-system-heading" className="build-title">
-            Your lore, your laws — then something they can{' '}
-            <span className="em">run</span>
+            From your canon to something people can{' '}
+            <span className="em">play</span>
           </h2>
           <p className="build-lead">
-            You keep canon and guardrails; Kathion shapes that intent into
-            structured scenes and branches, then bundles a playable moment.
-            Below is the through-line — explanatory, not a preview of a product
-            surface.
+            Roughly: world and rules first, then scenes and branches, then a
+            build you can share. The picture above matches the four cards below.
           </p>
-        </header>
-        <figure className="build-figure">
-          <BuildSystemDiagram />
-        </figure>
-        <ol className="build-stages" role="list">
-          {BUILD_STAGES.map((s, i) => (
-            <li key={s.id} className="build-stage">
-              <span className="build-stage-num">
-                {String(i + 1).padStart(2, '0')}
+          <div className="build-legend" id="build-flow-legend">
+            <div className="build-legend-rows">
+              <span className="build-legend-row">
+                <span className="build-legend-swatch build-legend-swatch--spark" />
+                Main path
               </span>
-              <h3 className="build-stage-title">{s.title}</h3>
-              <p className="build-stage-body">{s.body}</p>
-            </li>
-          ))}
-        </ol>
+              <span className="build-legend-row">
+                <span className="build-legend-swatch build-legend-swatch--eon" />
+                Optional redo
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <figure
+          className="build-figure"
+          aria-describedby="build-flow-legend"
+        >
+          <div className="build-lens">
+            <span className="build-lens-corner tl" aria-hidden />
+            <span className="build-lens-corner tr" aria-hidden />
+            <span className="build-lens-corner bl" aria-hidden />
+            <span className="build-lens-corner br" aria-hidden />
+            <div className="build-lens-frame" aria-hidden />
+            <div className="build-lens-overlay">
+              <span className="build-lens-dot" />
+              <span>Build flow</span>
+            </div>
+            <div className="build-lens-coords" aria-hidden>
+              Steps 1–4
+            </div>
+            <div className="build-lens-scan" aria-hidden />
+            <BuildSystemDiagram />
+          </div>
+        </figure>
+
+        <div className="build-parts">
+          <div className="build-parts-head" aria-hidden="true">
+            <span className="build-parts-head-line" />
+            <span className="build-parts-head-tag">The steps</span>
+            <span className="build-parts-head-line" />
+          </div>
+          <ol className="build-stages" role="list" aria-label="Build steps">
+            {BUILD_STAGES.map((s, i) => (
+              <li key={s.id} className="build-stage">
+                <span className="build-stage-num">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <h3 className="build-stage-title">{s.title}</h3>
+                <p className="build-stage-body">{s.body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     </section>
   )
