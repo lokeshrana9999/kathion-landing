@@ -45,6 +45,29 @@ function IconMail(p) {
 
 const WAITLIST_URL =
   import.meta.env.VITE_WAITLIST_URL || '/api/waitlist'
+/** Opaque token: identifies this browser as already signed up (not the email). */
+const WAITLIST_STORAGE_KEY = 'kathion_waitlist_token'
+
+function getWaitlistToken() {
+  try {
+    return localStorage.getItem(WAITLIST_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+function setWaitlistToken() {
+  const token =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
+  try {
+    localStorage.setItem(WAITLIST_STORAGE_KEY, token)
+  } catch {
+    /* private mode / blocked */
+  }
+  return token
+}
 
 /* ---------- Nav ---------- */
 function Nav() {
@@ -412,7 +435,9 @@ function StoryTree() {
 
 function MailingList() {
   const [email, setEmail] = useState('')
-  const [state, setState] = useState('idle')
+  const [state, setState] = useState(() =>
+    getWaitlistToken() ? 'done' : 'idle',
+  )
   const [error, setError] = useState('')
 
   const submit = async (e) => {
@@ -438,6 +463,7 @@ function MailingList() {
         setState('error')
         return
       }
+      setWaitlistToken()
       setState('done')
     } catch {
       setError('Could not reach the server. Try again later.')
