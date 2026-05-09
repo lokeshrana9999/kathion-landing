@@ -1,0 +1,183 @@
+/* Static pages (About, Terms) — uses tokens from home-landing.css / anthara-tokens */
+
+.static-site {
+  min-height: 100dvh;
+  background: var(--canopy);
+  color: var(--canopy-text);
+  display: flex;
+  flex-direction: column;
+}
+
+.static-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 32px;
+  height: 64px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--canopy-line);
+  background: color-mix(in srgb, var(--canopy) 94%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.static-brand {
+  display: inline-flex;
+  line-height: 0;
+}
+
+.static-nav {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.static-nav a {
+  font-size: 13px;
+  color: var(--canopy-mute);
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: color 160ms, background 160ms;
+}
+
+.static-nav a:hover {
+  color: var(--canopy-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.static-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 48px 0 96px;
+}
+
+.static-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.static-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--spark);
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.static-h1 {
+  font-family: var(--font-heading);
+  font-weight: 300;
+  font-size: clamp(2rem, 4.5vw, 2.85rem);
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0 0 16px;
+  color: var(--canopy-text);
+}
+
+.static-updated {
+  font-size: 13px;
+  color: var(--canopy-faint);
+  margin: -8px 0 24px;
+}
+
+.static-lead {
+  font-size: 1.125rem;
+  line-height: 1.62;
+  color: var(--canopy-mute);
+  margin: 0 0 28px;
+}
+
+.static-h2 {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 1.28rem;
+  letter-spacing: -0.02em;
+  margin: 40px 0 12px;
+  color: var(--canopy-text);
+}
+
+.static-p {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--canopy-mute);
+  margin: 0 0 16px;
+}
+
+.static-list {
+  margin: 0 0 16px;
+  padding-left: 1.25rem;
+  color: var(--canopy-mute);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.static-list li {
+  margin-bottom: 10px;
+}
+
+.static-list li:last-child {
+  margin-bottom: 0;
+}
+
+.static-muted {
+  font-size: 14px;
+  color: var(--canopy-faint);
+  border-top: 1px solid var(--canopy-line);
+  padding-top: 24px;
+  margin-top: 36px;
+}
+
+.static-figure {
+  margin: 24px 0 36px;
+}
+
+.static-figure figcaption {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--canopy-faint);
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.diagram-frame {
+  margin: 0;
+  border-radius: 6px;
+  border: 1px solid var(--canopy-line-2);
+  background: var(--canopy-2);
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.2),
+    0 24px 48px rgba(0, 0, 0, 0.35);
+}
+
+.diagram-graphic {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+.static-wrap a {
+  color: var(--spark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.static-wrap a:hover {
+  color: color-mix(in srgb, var(--spark) 88%, white);
+}
+
+@media (max-width: 640px) {
+  .static-header {
+    padding: 0 20px;
+  }
+  .static-wrap {
+    padding: 0 20px;
+  }
+}

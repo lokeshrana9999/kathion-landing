@@ -7,6 +7,26 @@ const { Pool } = pg
 /** @type {pg.Pool | null} */
 let pool
 
+/** Map deprecated sslmode values so pg v8 stops warning (future v9 libpq semantics). */
+function normalizePgConnectionString(raw) {
+  const q = raw.indexOf('?')
+  const base = q === -1 ? raw : raw.slice(0, q)
+  const params = new URLSearchParams(q === -1 ? '' : raw.slice(q + 1))
+  const mode = (params.get('sslmode') || '').toLowerCase()
+  if (mode === 'require' || mode === 'prefer' || mode === 'verify-ca') {
+    params.set('sslmode', 'verify-full')
+  } else if (!params.has('sslmode') && /\.supabase\.co/i.test(base)) {
+    params.set('sslmode', 'verify-full')
+  }
+  const rest = params.toString()
+  return rest ? `${base}?${rest}` : base
+}
+
+/** Direct DB host often fails on Vercel (ENOTFOUND); pooler :6543 is required. */
+function isSupabaseDirectDbUrl(raw) {
+  return /@db\.[^/]+\.supabase\.co:5432\//i.test(raw)
+}
+
 /** When relaxing TLS for local dev, drop sslmode from URI so pg honors `ssl.rejectUnauthorized`. */
 function connectionStringForPool(raw, relaxTls) {
   if (!relaxTls) return raw
@@ -25,7 +45,13 @@ function getPool() {
   if (!pool) {
     const relaxTls =
       process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === '0'
-    const conn = connectionStringForPool(connectionString, relaxTls)
+    let conn = normalizePgConnectionString(connectionString)
+    if (isSupabaseDirectDbUrl(conn)) {
+      console.warn(
+        'waitlist: DATABASE_URL points at db.*.supabase.co:5432 — use the Transaction pooler URI from Supabase (port 6543, …pooler.supabase.com) in Vercel env to avoid ENOTFOUND',
+      )
+    }
+    conn = connectionStringForPool(conn, relaxTls)
     pool = new Pool({
       connectionString: conn,
       max: 1,

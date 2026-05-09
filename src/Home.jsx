@@ -5,8 +5,8 @@ import {
   useMemo,
   useRef,
   useCallback,
-  useId,
 } from 'react'
+import { Link } from 'react-router-dom'
 
 const BRAND_LOGO_SRC = '/Web_Photo_Editor.png'
 
@@ -56,16 +56,26 @@ function Nav() {
   }, [])
   return (
     <nav className={'nav' + (scrolled ? ' scrolled' : '')}>
-      <a className="nav-mark" href="/" aria-label="Kathion home">
-        <img
-          src={BRAND_LOGO_SRC}
-          alt=""
-          className="brand-logo brand-logo--nav"
-          width={905}
-          height={398}
-          decoding="async"
-        />
-      </a>
+      <div className="nav-left">
+        <Link className="nav-mark" to="/" aria-label="Kathion home">
+          <img
+            src={BRAND_LOGO_SRC}
+            alt=""
+            className="brand-logo brand-logo--nav"
+            width={905}
+            height={398}
+            decoding="async"
+          />
+        </Link>
+        <div className="nav-links" aria-label="Site pages">
+          <Link className="nav-link" to="/about">
+            About
+          </Link>
+          <Link className="nav-link" to="/terms">
+            Terms
+          </Link>
+        </div>
+      </div>
       <span className="nav-status">
         <span className="dot" />
         <span>Private alpha · invitation only</span>
@@ -494,7 +504,8 @@ function MailingList() {
 
 function Hero() {
   return (
-    <section className="hero">
+    <section className="hero snap-section">
+      <Nav />
       <div className="hero-grid" />
       <div className="hero-vignette" />
       <div className="wrap hero-inner">
@@ -536,281 +547,6 @@ function Hero() {
           </div>
           <div className="hero-canvas-coords">N 47.2° · W 12.8° · DEPTH 4</div>
           <StoryTree />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-const BUILD_STAGES = [
-  {
-    id: 'canon',
-    title: 'Canon & sources',
-    short: 'Your world',
-    body: 'The setting, tone, and background everything else draws from.',
-  },
-  {
-    id: 'rules',
-    title: 'Rules & constraints',
-    short: 'Fixed points',
-    body: 'What always has to hold: mood, logic, and how far a choice can go.',
-  },
-  {
-    id: 'scenes',
-    title: 'Scenes & branches',
-    short: 'Story beats',
-    body: 'The moments in order, and where the story can branch.',
-  },
-  {
-    id: 'build',
-    title: 'Build & output',
-    short: 'Shippable',
-    body: 'Something playable you can hand to someone—save it, share it, tweak it later.',
-  },
-]
-
-function BuildSystemDiagram() {
-  const uid = useId().replace(/:/g, '')
-  const markerForward = `build-fwd-${uid}`
-  const markerLoop = `build-loop-${uid}`
-  const vbW = 1024
-  const vbH = 236
-  const boxW = 212
-  const boxH = 126
-  const arrW = 38
-  const m = 34
-  const y0 = 30
-
-  const rowY = y0 + boxH
-  const loopMx = m + boxW * 0.45
-  const loopMy = rowY + 48
-  const loopRx = m + 3 * (boxW + arrW) + boxW - boxW * 0.45
-
-  return (
-    <svg
-      className="build-diagram-svg"
-      viewBox={`0 0 ${vbW} ${vbH}`}
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient
-          id={`build-node-sheen-${uid}`}
-          x1="0%"
-          y1="0%"
-          x2="100%"
-          y2="100%"
-        >
-          <stop offset="0%" stopColor="rgba(255,255,255,0.06)" />
-          <stop offset="45%" stopColor="rgba(255,255,255,0)" />
-          <stop offset="100%" stopColor="rgba(192,112,79,0.07)" />
-        </linearGradient>
-        <marker
-          id={markerForward}
-          markerWidth="7"
-          markerHeight="7"
-          refX="6"
-          refY="3.5"
-          orient="auto"
-        >
-          <path d="M0 0 L7 3.5 L0 7 Z" fill="var(--spark)" opacity="0.85" />
-        </marker>
-        <marker
-          id={markerLoop}
-          markerWidth="6"
-          markerHeight="6"
-          refX="5"
-          refY="3"
-          orient="auto"
-        >
-          <path
-            d="M0 0 L6 3 L0 6 Z"
-            fill="var(--eon)"
-            opacity="0.65"
-          />
-        </marker>
-      </defs>
-      <line
-        x1={m}
-        y1={y0 - 12}
-        x2={m + 4 * (boxW + arrW) - arrW}
-        y2={y0 - 12}
-        className="build-diagram-tickline"
-      />
-      {BUILD_STAGES.map((s, i) => {
-        const x = m + i * (boxW + arrW) + boxW * 0.5
-        return (
-          <line
-            key={`tick-${s.id}`}
-            x1={x}
-            y1={y0 - 12}
-            x2={x}
-            y2={y0 - 4}
-            className="build-diagram-tick"
-          />
-        )
-      })}
-      {BUILD_STAGES.slice(0, -1).map((_, i) => {
-        const x1 = m + i * (boxW + arrW) + boxW + 4
-        const x2 = m + (i + 1) * (boxW + arrW) - 4
-        const ym = y0 + boxH / 2
-        return (
-          <line
-            key={`a-${i}`}
-            x1={x1}
-            y1={ym}
-            x2={x2}
-            y2={ym}
-            className="build-diagram-flow"
-            strokeWidth="1.5"
-            markerEnd={`url(#${markerForward})`}
-          />
-        )
-      })}
-      {BUILD_STAGES.map((s, i) => {
-        const x = m + i * (boxW + arrW)
-        const idx = String(i + 1).padStart(2, '0')
-        return (
-          <g key={s.id} transform={`translate(${x},${y0})`}>
-            <rect
-              width={boxW}
-              height={boxH}
-              rx="4"
-              className="build-diagram-node"
-              fill="var(--canopy)"
-              stroke="var(--canopy-line-2)"
-              strokeWidth="1"
-            />
-            <rect
-              width={boxW}
-              height={boxH}
-              rx="4"
-              className="build-diagram-node-glare"
-              fill={`url(#build-node-sheen-${uid})`}
-              opacity="0.5"
-            />
-            <text
-              x="13"
-              y="30"
-              fill="var(--canopy-text)"
-              className="build-diagram-svg-title"
-            >
-              {s.title}
-            </text>
-            <text
-              x="13"
-              y="52"
-              fill="var(--canopy-mute)"
-              className="build-diagram-svg-sub"
-            >
-              {s.short}
-            </text>
-            <text
-              x={boxW - 12}
-              y="22"
-              textAnchor="end"
-              fill="var(--spark)"
-              className="build-diagram-index"
-            >
-              {idx}
-            </text>
-          </g>
-        )
-      })}
-      <path
-        className="build-diagram-loop"
-        d={`M ${loopRx} ${rowY - 4} Q ${vbW / 2} ${loopMy} ${loopMx} ${rowY - 4}`}
-        fill="none"
-        strokeWidth="1.35"
-        strokeLinecap="round"
-        markerEnd={`url(#${markerLoop})`}
-      />
-      <text
-        x={vbW / 2}
-        y={loopMy + 12}
-        fill="var(--eon)"
-        className="build-diagram-loop-cap"
-        opacity="0.85"
-      >
-        Redo
-      </text>
-    </svg>
-  )
-}
-
-function BuildSystemSection() {
-  return (
-    <section
-      className="section-build"
-      aria-labelledby="build-system-heading"
-    >
-      <div className="wrap build-wrap">
-        <header className="build-whole">
-          <div className="build-kicker">
-            <span className="build-kicker-dot" />
-            <span>Overview</span>
-          </div>
-          <h2 id="build-system-heading" className="build-title">
-            From your canon to something people can{' '}
-            <span className="em">play</span>
-          </h2>
-          <p className="build-lead">
-            Roughly: world and rules first, then scenes and branches, then a
-            build you can share. The picture above matches the four cards below.
-          </p>
-          <div className="build-legend" id="build-flow-legend">
-            <div className="build-legend-rows">
-              <span className="build-legend-row">
-                <span className="build-legend-swatch build-legend-swatch--spark" />
-                Main path
-              </span>
-              <span className="build-legend-row">
-                <span className="build-legend-swatch build-legend-swatch--eon" />
-                Optional redo
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <figure
-          className="build-figure"
-          aria-describedby="build-flow-legend"
-        >
-          <div className="build-lens">
-            <span className="build-lens-corner tl" aria-hidden />
-            <span className="build-lens-corner tr" aria-hidden />
-            <span className="build-lens-corner bl" aria-hidden />
-            <span className="build-lens-corner br" aria-hidden />
-            <div className="build-lens-frame" aria-hidden />
-            <div className="build-lens-overlay">
-              <span className="build-lens-dot" />
-              <span>Build flow</span>
-            </div>
-            <div className="build-lens-coords" aria-hidden>
-              Steps 1–4
-            </div>
-            <div className="build-lens-scan" aria-hidden />
-            <BuildSystemDiagram />
-          </div>
-        </figure>
-
-        <div className="build-parts">
-          <div className="build-parts-head" aria-hidden="true">
-            <span className="build-parts-head-line" />
-            <span className="build-parts-head-tag">The steps</span>
-            <span className="build-parts-head-line" />
-          </div>
-          <ol className="build-stages" role="list" aria-label="Build steps">
-            {BUILD_STAGES.map((s, i) => (
-              <li key={s.id} className="build-stage">
-                <span className="build-stage-num">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <h3 className="build-stage-title">{s.title}</h3>
-                <p className="build-stage-body">{s.body}</p>
-              </li>
-            ))}
-          </ol>
         </div>
       </div>
     </section>
@@ -981,41 +717,30 @@ Respond as JSON only:
   }
 
   return (
-    <section className="section-demo">
+    <section className="section-demo snap-section">
       <div className="wrap">
-        <div className="section-head" style={{ marginBottom: 36 }}>
+        <div className="section-head">
           <div>
             <div className="eyebrow spark">A live scene</div>
-            <h2 style={{ color: 'var(--canopy-text)' }}>
+            <h2>
               The engine{' '}
-              <span
-                className="em"
-                style={{ fontStyle: 'italic', color: 'var(--spark)' }}
-              >
-                responds
-              </span>
-              .
+              <span className="em">responds</span>.
               <br />
               You answer it back.
             </h2>
           </div>
           <div className="right">
-            <p style={{ color: 'var(--canopy-mute)' }}>
-              This is real narration, generated live for this scene. Pick a
-              choice, type your own action, or restart the scene.
+            <p>
+              <strong>Demo only</strong>—a fixed sample scene for this page, not full gameplay or
+              a saved story. Try a choice, your own line, or restart.
             </p>
           </div>
         </div>
 
         <div className="demo-frame" ref={stageRef}>
           <aside className="demo-aside">
-            <div style={{ marginBottom: 20 }}>
-              <div
-                className="eyebrow ink"
-                style={{ color: 'var(--canopy-faint)', marginBottom: 10 }}
-              >
-                WORLD
-              </div>
+            <div>
+              <div className="eyebrow ink demo-aside-eyebrow">WORLD</div>
               <h4>{scene.world}</h4>
               <div className="subline">A maritime gothic, Act I.</div>
             </div>
@@ -1074,8 +799,7 @@ Respond as JSON only:
 
             <button
               type="button"
-              className="btn btn-ghost-light btn-sm"
-              style={{ marginTop: 18, width: '100%', justifyContent: 'center' }}
+              className="btn btn-ghost-light btn-sm demo-restart"
               onClick={reset}
             >
               Restart scene
@@ -1147,35 +871,11 @@ Respond as JSON only:
   )
 }
 
-function Footer() {
-  return (
-    <footer className="foot-mini">
-      <div className="wrap foot-mini-row">
-        <span className="foot-mark">
-          <img
-            src={BRAND_LOGO_SRC}
-            alt=""
-            className="brand-logo brand-logo--foot"
-            width={905}
-            height={398}
-            decoding="async"
-            aria-hidden
-          />
-        </span>
-        <span className="foot-tag">A library of unwritten worlds.</span>
-      </div>
-    </footer>
-  )
-}
-
 export default function Home() {
   return (
     <>
-      <Nav />
       <Hero />
-      <BuildSystemSection />
       <StoryDemo />
-      <Footer />
     </>
   )
 }
