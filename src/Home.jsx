@@ -1,6 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useTweaks } from './useTweaks'
-import { DevTweaksPanel } from './DevTweaksPanel'
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from 'react'
 
 const BRAND_LOGO_SRC = '/Web_Photo_Editor.png'
 
@@ -37,7 +42,8 @@ function IconMail(p) {
   )
 }
 
-const LIST_KEY = 'kathion.waitlist'
+const WAITLIST_URL =
+  import.meta.env.VITE_WAITLIST_URL || '/api/waitlist'
 
 /* ---------- Nav ---------- */
 function Nav() {
@@ -68,6 +74,17 @@ function Nav() {
 }
 
 /* ---------- Story tree (hero canvas) ---------- */
+const STORY_TREE_ACTIVE_PATHS = [
+  ['root', 'b', 'b1', 'x2'],
+  ['root', 'a', 'a2', 'x1'],
+  ['root', 'c', 'c2', 'x4'],
+  ['root', 'b', 'b2', 'x3'],
+]
+
+/** Keep in sync with .tree-highlight--draw / --recede in home-landing.css */
+const STORY_TREE_DRAW_MS = 1150
+const STORY_TREE_RECEDE_MS = 900
+
 function StoryTree() {
   const W = 600
   const H = 580
@@ -113,30 +130,47 @@ function StoryTree() {
     ...Object.fromEntries([...tier1, ...tier2, ...tier3].map((n) => [n.id, n])),
   }
 
-  const activePaths = [
-    ['root', 'b', 'b1', 'x2'],
-    ['root', 'a', 'a2', 'x1'],
-    ['root', 'c', 'c2', 'x4'],
-    ['root', 'b', 'b2', 'x3'],
-  ]
   const [activeIdx, setActiveIdx] = useState(0)
-  const pathCycle = activePaths.length
+  const pathCycle = STORY_TREE_ACTIVE_PATHS.length
+  /** boot → idle (timer runs); receding → drawing → idle */
+  const [phase, setPhase] = useState('boot')
+  const [transitionFrom, setTransitionFrom] = useState(0)
+  const [metricLen, setMetricLen] = useState(0)
+  const [animPathNodes, setAnimPathNodes] = useState(() => new Set())
+
+  const prevCommittedRef = useRef(0)
+  const activeIdxRef = useRef(activeIdx)
+  const phaseRef = useRef(phase)
+
   useEffect(() => {
+    activeIdxRef.current = activeIdx
+    phaseRef.current = phase
+  }, [activeIdx, phase])
+
+  useEffect(() => {
+    if (phase !== 'idle') return
     const id = setInterval(
       () => setActiveIdx((i) => (i + 1) % pathCycle),
       4200,
     )
     return () => clearInterval(id)
-  }, [pathCycle])
-  const activeSet = new Set(activePaths[activeIdx])
-  const activeLinks = new Set()
-  const pathIds = activePaths[activeIdx]
-  for (let i = 0; i < pathIds.length - 1; i++) {
-    activeLinks.add(pathIds[i] + '-' + pathIds[i + 1])
-  }
+  }, [phase, pathCycle])
+
+  useEffect(() => {
+    if (phase !== 'idle') return
+    if (activeIdx === prevCommittedRef.current) return
+    setTransitionFrom(prevCommittedRef.current)
+    setPhase('receding')
+  }, [activeIdx, phase])
+
+  const pathNodeSet =
+    phase === 'idle'
+      ? new Set(STORY_TREE_ACTIVE_PATHS[activeIdx])
+      : animPathNodes
 
   const px = (n) => n.x * W
   const py = (n) => n.y * H
+
   const path = (a, b) => {
     const ax = px(a)
     const ay = py(a)
@@ -144,6 +178,145 @@ function StoryTree() {
     const by = py(b)
     return `M${ax},${ay} C${ax + (bx - ax) * 0.5},${ay} ${ax + (bx - ax) * 0.5},${by} ${bx},${by}`
   }
+
+  const segmentCurve = (na, nb) => {
+    const ax = px(na)
+    const ay = py(na)
+    const bx = px(nb)
+    const by = py(nb)
+    return {
+      move: `M${ax},${ay}`,
+      curve: `C${ax + (bx - ax) * 0.5},${ay} ${ax + (bx - ax) * 0.5},${by} ${bx},${by}`,
+    }
+  }
+
+  const buildRouteD = (routeIdx) => {
+    const ids = STORY_TREE_ACTIVE_PATHS[routeIdx]
+    let d = ''
+    for (let i = 0; i < ids.length - 1; i++) {
+      const { move, curve } = segmentCurve(all[ids[i]], all[ids[i + 1]])
+      d += (i === 0 ? `${move} ${curve}` : ` ${curve}`)
+    }
+    return d
+  }
+
+  const routeLenByIdxRef = useRef(null)
+
+  useLayoutEffect(() => {
+    if (routeLenByIdxRef.current) return
+    const svgNS = 'http://www.w3.org/2000/svg'
+    const pathEl = document.createElementNS(svgNS, 'path')
+    const a = all
+    const segD = (na, nb) => {
+      const ax = px(na)
+      const ay = py(na)
+      const bx = px(nb)
+      const by = py(nb)
+      return `M${ax},${ay} C${ax + (bx - ax) * 0.5},${ay} ${ax + (bx - ax) * 0.5},${by} ${bx},${by}`
+    }
+    const out = {}
+    for (let r = 0; r < STORY_TREE_ACTIVE_PATHS.length; r++) {
+      const ids = STORY_TREE_ACTIVE_PATHS[r]
+      const cum = [0]
+      let t = 0
+      for (let i = 0; i < ids.length - 1; i++) {
+        pathEl.setAttribute('d', segD(a[ids[i]], a[ids[i + 1]]))
+        t += pathEl.getTotalLength()
+        cum.push(t)
+      }
+      out[r] = { cum, total: t }
+    }
+    routeLenByIdxRef.current = out
+    // Graph layout is fixed; measure once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (phase !== 'drawing' && phase !== 'boot') return
+    const routeIdx = phase === 'boot' ? 0 : activeIdx
+    const metrics = routeLenByIdxRef.current?.[routeIdx]
+    if (!metrics?.total) return
+    const { cum, total } = metrics
+    const ids = STORY_TREE_ACTIVE_PATHS[routeIdx]
+    setAnimPathNodes(new Set())
+    const timers = ids.map((id, i) => {
+      const along = total > 0 ? Math.min(1, cum[i] / total) : 0
+      const tNorm =
+        along <= 0 ? 0 : 1 - Math.cbrt(Math.max(0, 1 - along))
+      return window.setTimeout(() => {
+        setAnimPathNodes((prev) => new Set(prev).add(id))
+      }, STORY_TREE_DRAW_MS * tNorm)
+    })
+    return () => timers.forEach(clearTimeout)
+  }, [phase, activeIdx])
+
+  useEffect(() => {
+    if (phase !== 'receding') return
+    const metrics = routeLenByIdxRef.current?.[transitionFrom]
+    if (!metrics?.total) return
+    const { cum, total } = metrics
+    const ids = STORY_TREE_ACTIVE_PATHS[transitionFrom]
+    setAnimPathNodes(new Set(ids))
+    const timers = ids.map((id, i) => {
+      const along = total > 0 ? Math.min(1, cum[i] / total) : 0
+      const tNorm = along >= 1 ? 0 : Math.cbrt(Math.max(0, 1 - along))
+      return window.setTimeout(() => {
+        setAnimPathNodes((prev) => {
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
+      }, STORY_TREE_RECEDE_MS * tNorm)
+    })
+    return () => timers.forEach(clearTimeout)
+  }, [phase, transitionFrom])
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- buildRouteD from fixed graph layout
+  const idleRouteD = useMemo(() => buildRouteD(activeIdx), [activeIdx])
+
+  const animatedPathRef = useRef(null)
+
+  useLayoutEffect(() => {
+    if (phase !== 'boot' && phase !== 'receding' && phase !== 'drawing') {
+      return
+    }
+    const el = animatedPathRef.current
+    if (!el) return
+    const L = el.getTotalLength()
+    setMetricLen(Number.isFinite(L) && L > 0 ? L : 0)
+  }, [phase, transitionFrom, activeIdx])
+
+  const handleRecedeEnd = useCallback((e) => {
+    if (!e.animationName?.includes('tree-highlight-recede')) return
+    if (e.target !== e.currentTarget) return
+    setPhase('drawing')
+  }, [])
+
+  const handleHighlightDrawEnd = useCallback((e) => {
+    if (!e.animationName?.includes('tree-highlight-draw')) return
+    if (e.target !== e.currentTarget) return
+    if (phaseRef.current === 'boot') {
+      prevCommittedRef.current = 0
+      setPhase('idle')
+      return
+    }
+    prevCommittedRef.current = activeIdxRef.current
+    setPhase('idle')
+  }, [])
+
+  const animatedHighlightD =
+    phase === 'boot'
+      ? buildRouteD(0)
+      : phase === 'receding'
+        ? buildRouteD(transitionFrom)
+        : buildRouteD(activeIdx)
+
+  const animatedPathKey =
+    phase === 'boot'
+      ? 'h-boot'
+      : phase === 'receding'
+        ? `h-r-${transitionFrom}-${activeIdx}`
+        : `h-d-${activeIdx}`
 
   return (
     <svg
@@ -157,21 +330,39 @@ function StoryTree() {
         <circle cx={px(root)} cy={py(root)} r="220" />
         <circle cx={px(root)} cy={py(root)} r="340" />
       </g>
-      {links.map(([from, to], i) => {
-        const k = from + '-' + to
-        const active = activeLinks.has(k)
-        return (
-          <path
-            key={k}
-            d={path(all[from], all[to])}
-            className={'tree-line draw-in' + (active ? ' active' : '')}
-            style={{ animationDelay: `${i * 80}ms` }}
-          />
-        )
-      })}
+      {links.map(([from, to], i) => (
+        <path
+          key={from + '-' + to}
+          d={path(all[from], all[to])}
+          className="tree-line draw-in"
+          style={{ animationDelay: `${i * 80}ms` }}
+        />
+      ))}
+      {phase === 'idle' ? (
+        <path className="tree-highlight-route" d={idleRouteD} />
+      ) : (
+        <path
+          ref={animatedPathRef}
+          key={animatedPathKey}
+          d={animatedHighlightD}
+          className={
+            'tree-highlight-path' +
+            (phase === 'receding'
+              ? ' tree-highlight--recede'
+              : ' tree-highlight--draw') +
+            (metricLen > 0 ? '' : ' tree-highlight--pre')
+          }
+          style={{
+            ['--highlight-len']: String(metricLen > 0 ? metricLen : 1),
+          }}
+          onAnimationEnd={
+            phase === 'receding' ? handleRecedeEnd : handleHighlightDrawEnd
+          }
+        />
+      )}
       {Object.values(all).map((n, i) => {
         const isRoot = n.id === 'root'
-        const active = activeSet.has(n.id)
+        const active = pathNodeSet.has(n.id)
         return (
           <g
             key={n.id}
@@ -213,7 +404,7 @@ function MailingList() {
   const [state, setState] = useState('idle')
   const [error, setError] = useState('')
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e?.preventDefault?.()
     if (state === 'submitting' || state === 'done') return
     const trimmed = email.trim()
@@ -224,16 +415,23 @@ function MailingList() {
     }
     setError('')
     setState('submitting')
-    setTimeout(() => {
-      try {
-        const list = JSON.parse(localStorage.getItem(LIST_KEY) || '[]')
-        if (!list.includes(trimmed)) list.push(trimmed)
-        localStorage.setItem(LIST_KEY, JSON.stringify(list))
-      } catch {
-        /* ignore */
+    try {
+      const res = await fetch(WAITLIST_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmed }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong. Try again.')
+        setState('error')
+        return
       }
       setState('done')
-    }, 700)
+    } catch {
+      setError('Could not reach the server. Try again later.')
+      setState('error')
+    }
   }
 
   if (state === 'done') {
@@ -277,7 +475,7 @@ function MailingList() {
             'Adding…'
           ) : (
             <>
-              Get a key <IconArrowR size={14} />
+              Join waitlist <IconArrowR size={14} />
             </>
           )}
         </button>
@@ -689,48 +887,18 @@ function Footer() {
           />
         </span>
         <span className="foot-tag">A library of unwritten worlds.</span>
-        <span className="foot-meta">© 2026 · v 0.7.4 · CODEX BUILD</span>
       </div>
     </footer>
   )
 }
 
-const TWEAK_DEFAULTS = {
-  theme: 'observatory',
-  accent: '#c0704f',
-}
-
-function applyTweaks(t) {
-  const root = document.documentElement
-  root.style.setProperty('--spark', t.accent || '#c0704f')
-  if (t.theme === 'codex') {
-    root.style.setProperty('--canopy', '#14110b')
-    root.style.setProperty('--canopy-2', '#1c1810')
-    root.style.setProperty('--canopy-3', '#272015')
-  } else if (t.theme === 'holograph') {
-    root.style.setProperty('--canopy', '#0c1517')
-    root.style.setProperty('--canopy-2', '#13202a')
-    root.style.setProperty('--canopy-3', '#1b2c39')
-  } else {
-    root.style.setProperty('--canopy', '#131f1a')
-    root.style.setProperty('--canopy-2', '#1a2a23')
-    root.style.setProperty('--canopy-3', '#213731')
-  }
-}
-
 export default function Home() {
-  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS)
-  useEffect(() => {
-    applyTweaks(t)
-  }, [t])
-
   return (
     <>
       <Nav />
       <Hero />
       <StoryDemo />
       <Footer />
-      <DevTweaksPanel tweaks={t} setTweak={setTweak} />
     </>
   )
 }

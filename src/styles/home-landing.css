@@ -483,7 +483,40 @@ button { font: inherit; }
 .tree-node.active .tree-node-circle { fill: var(--spark); }
 .tree-node.active .tree-node-label { opacity: 1; fill: var(--canopy-text); }
 .tree-line { stroke: var(--canopy-line-2); stroke-width: 1; fill: none; }
-.tree-line.active { stroke: var(--spark); stroke-width: 1.5; }
+
+/* Orange route overlay (not the gray base edges).
+   Butt caps avoid a round-cap bulge at the path origin (root). */
+.tree-highlight-path,
+.tree-highlight-route {
+  stroke: var(--spark);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  stroke-miterlimit: 2;
+  pointer-events: none;
+}
+/* Durations kept in sync with STORY_TREE_DRAW_MS / STORY_TREE_RECEDE_MS in Home.jsx */
+.tree-highlight--draw {
+  stroke-dasharray: var(--highlight-len, 800);
+  stroke-dashoffset: var(--highlight-len, 800);
+  animation: tree-highlight-draw 1.15s ease-out forwards;
+}
+.tree-highlight--recede {
+  stroke-dasharray: var(--highlight-len, 800);
+  stroke-dashoffset: 0;
+  animation: tree-highlight-recede 0.9s ease-in forwards;
+}
+.tree-highlight--pre {
+  opacity: 0;
+  animation: none !important;
+}
+@keyframes tree-highlight-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes tree-highlight-recede {
+  to { stroke-dashoffset: var(--highlight-len, 800); }
+}
 
 .draw-in { stroke-dasharray: 400; stroke-dashoffset: 400; animation: draw 2.4s ease-out forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
@@ -1103,6 +1136,15 @@ button { font: inherit; }
     animation: none;
     stroke-dashoffset: 0;
   }
+  .tree-highlight--draw {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+  .tree-highlight--recede {
+    animation: none !important;
+    opacity: 0;
+    stroke-dashoffset: var(--highlight-len, 800) !important;
+  }
   .fade-in {
     animation: none;
     opacity: 1;
@@ -1110,99 +1152,4 @@ button { font: inherit; }
   .ticker-track {
     animation: none;
   }
-}
-
-/* ---------- dev tweaks (ported from sample TweaksPanel) ---------- */
-.dev-tweaks {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 2147483646;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  font: 11.5px/1.4 ui-sans-serif, system-ui, sans-serif;
-}
-.dev-tweaks-toggle {
-  appearance: none;
-  border: 0.5px solid rgba(255, 255, 255, 0.35);
-  background: rgba(26, 42, 35, 0.92);
-  color: var(--canopy-text);
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-size: 10px;
-  font-weight: 600;
-}
-.dev-tweaks-toggle:hover {
-  background: rgba(33, 55, 49, 0.95);
-}
-.dev-tweaks-toggle:focus-visible {
-  outline: 2px solid var(--spark);
-  outline-offset: 2px;
-}
-.dev-tweaks-panel {
-  width: 260px;
-  padding: 12px 14px 14px;
-  border-radius: 12px;
-  border: 0.5px solid rgba(255, 255, 255, 0.12);
-  background: rgba(19, 31, 26, 0.94);
-  backdrop-filter: blur(12px);
-  color: var(--canopy-text);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-}
-.dev-tweaks-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 10px;
-}
-.dev-tweaks-row:first-child {
-  margin-top: 0;
-}
-.dev-tweaks-row label,
-.dev-tweaks-row > span:first-child {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--canopy-faint);
-}
-.dev-tweaks-select {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--canopy-line-2);
-  background: var(--canopy-2);
-  color: var(--canopy-text);
-  font: inherit;
-  cursor: pointer;
-}
-.dev-tweaks-select:focus-visible {
-  outline: 2px solid var(--spark);
-  outline-offset: 2px;
-}
-.dev-tweaks-swatches {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.dev-tweaks-swatch {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
-  padding: 0;
-}
-.dev-tweaks-swatch.active {
-  border-color: var(--canopy-text);
-  box-shadow: 0 0 0 1px var(--canopy);
-}
-.dev-tweaks-swatch:focus-visible {
-  outline: 2px solid var(--spark);
-  outline-offset: 2px;
 }
