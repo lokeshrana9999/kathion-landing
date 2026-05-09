@@ -101,7 +101,14 @@ export default {
 
       return Response.json({ ok: true }, { headers: corsHeaders() })
     } catch (err) {
-      console.error('waitlist: database', err)
+      if (err?.code === 'ENOTFOUND' || err?.errno === -3007) {
+        console.error(
+          'waitlist: database DNS failed — use Supabase Transaction pooler URI (:6543, pooler host) in DATABASE_URL on Vercel, not db.*.supabase.co:5432',
+          err.hostname || err,
+        )
+      } else {
+        console.error('waitlist: database', err)
+      }
       return Response.json(
         { error: 'Could not save signup' },
         { status: 500, headers: corsHeaders() },
